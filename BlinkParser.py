@@ -61,7 +61,7 @@ class BlinkParser():
             try:
                 status = branch.find_element_by_class_name('Hours-statusText').text.strip()
             except:
-                status = branch.find_element_by_class_name('Teaser-text').text
+                status = branch.find_element_by_class_name('Teaser-text').text.strip()
             
             # return status as integer value for efficient storage and comparison
             for k,v in BlinkParser.branch_status_dict.items():
@@ -82,13 +82,13 @@ class BlinkParser():
                 for branch in branches:
                     # replace assignments with database update code
                     temp_branch = {}
-                    temp_branch['branch_state'] = url[-2:]
-                    temp_branch['branch_city'] = city.find_element_by_class_name('Directory-cityName').text
-                    temp_branch['branch_status'] = parse_status(branch)
-                    temp_branch['branch_url'] = branch.find_element_by_class_name('Teaser-titleLink').get_attribute('href')
-                    temp_branch['branch_title'] = branch.find_element_by_class_name('Teaser-title').text
-                    temp_branch['branch_address'] = branch.find_element_by_class_name('Teaser-address').text
-                    temp_branch['branch_phone'] = branch.find_element_by_class_name('Teaser-phone').text
+                    temp_branch['state'] = url[-2:].upper()
+                    temp_branch['city'] = city.find_element_by_class_name('Directory-cityName').text
+                    temp_branch['status'] = parse_status(branch)
+                    temp_branch['url'] = branch.find_element_by_class_name('Teaser-titleLink').get_attribute('href')
+                    temp_branch['title'] = branch.find_element_by_class_name('Teaser-title').text
+                    temp_branch['address'] = branch.find_element_by_class_name('Teaser-address').text
+                    temp_branch['phone'] = branch.find_element_by_class_name('Teaser-phone').text
                     
                     self.location_info.append(temp_branch)
         
@@ -96,12 +96,3 @@ class BlinkParser():
         def parse_capacity(self, branch_url):
             # TODO: develop function that checks status
             pass
-        
-if __name__ == '__main__':
-    parser = BlinkParser()
-    parser.parse()
-    
-    for item in parser.location_info:
-        print(item)
-    
-    
