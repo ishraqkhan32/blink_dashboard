@@ -1,4 +1,4 @@
-from app import db, BlinkBranch
+from app import db, Branch, Address
 from BlinkParser import BlinkParser
 
 def main():
@@ -10,12 +10,16 @@ def main():
     parser.parse()
     
     for branch in parser.location_info:
-        new_branch = BlinkBranch(
-            title = branch['title'],
-            status = branch['status'],
+        branch_address = Address(
             state = branch['state'],
             city = branch['city'],
-            address = branch['address'],
+            street = branch['street']
+        )
+        
+        new_branch = Branch(
+            title = branch['title'],
+            status = branch['status'],
+            address = branch_address,
             phone = branch['phone'],
             url = branch['url']
         )

@@ -87,7 +87,7 @@ class BlinkParser():
                     temp_branch['status'] = parse_status(branch)
                     temp_branch['url'] = branch.find_element_by_class_name('Teaser-titleLink').get_attribute('href')
                     temp_branch['title'] = branch.find_element_by_class_name('Teaser-title').text
-                    temp_branch['address'] = branch.find_element_by_class_name('Teaser-address').text
+                    temp_branch['street'] = branch.find_element_by_class_name('Teaser-address').text
                     temp_branch['phone'] = branch.find_element_by_class_name('Teaser-phone').text
                     
                     self.location_info.append(temp_branch)
