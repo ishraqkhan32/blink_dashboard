@@ -1,6 +1,9 @@
 # Databases
 *.db
 
+# Pycache
+__pycache__/
+
 # OS generated files #
 ######################
 .DS_Store
