@@ -9,7 +9,7 @@ def main():
     parser = BlinkParser()
     parser.parse()
     
-    for branch in parser.location_info:
+    for branch in parser.branch_info:
         branch_address = Address(
             state = branch['state'],
             city = branch['city'],

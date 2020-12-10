@@ -15,7 +15,6 @@ db = SQLAlchemy(app)
 class Branch(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(30), unique=True, nullable=False)
-    status = db.Column(db.String(30))
     phone = db.Column(db.String(12), unique=True, nullable=False)
     url = db.Column(db.String(100), nullable=False)
     address = db.relationship('Address', backref='branch', lazy=True, uselist=False)
@@ -32,3 +31,9 @@ class Address(db.Model):
     
     def __repr__(self):
         return f"{self.street}, {self.city}, {self.state}"
+    
+class Capacity(db.Model):
+    id = db.Column(db.Integer,primary_key=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branch.id'), nullable=False)
+    capacity = db.Column(db.String(100), unique=True)
+    
