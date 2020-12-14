@@ -35,5 +35,5 @@ class Address(db.Model):
 class Capacity(db.Model):
     id = db.Column(db.Integer,primary_key=True)
     branch_id = db.Column(db.Integer, db.ForeignKey('branch.id'), nullable=False)
-    capacity = db.Column(db.String(100), unique=True)
-    
+    capacity = db.Column(db.String(100))
+    status_code = db.Column(db.Integer)
