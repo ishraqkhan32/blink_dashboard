@@ -6,10 +6,11 @@ import time
 
 class BlinkParser():
     CHROME_PATH = "/Users/ik/bin/chromedriver"
-
+    DIRECTORY_URL = 'https://locations.blinkfitness.com/index.html'
+    
     branch_status_dict = {
         0: ['Open Now - Closes at'],
-        1: ['Coming Soon'], 
+        1: ['Opening Soon'], 
         2: ['Temporarily Closed', 'Closed'],
         3: ['Closed - Opens at']}
 
@@ -17,13 +18,15 @@ class BlinkParser():
         self.driver = None
         self.branch_directory_urls = []
         self.branch_info = []
-        
-    def parse(self):
         self.driver = self.load_chromedriver(BlinkParser.CHROME_PATH)
-
-        blink_directory_url = 'https://locations.blinkfitness.com/index.html'
-
-        self.driver.get(blink_directory_url)
+        
+    def load_chromedriver(self, path):
+        chrome_options = Options()
+        chrome_options.page_load_strategy = 'eager'
+        return webdriver.Chrome(path, options=chrome_options)
+    
+    def parse(self):
+        self.driver.get(BlinkParser.DIRECTORY_URL)
         wait = WebDriverWait(self.driver, 10)
         branch_links = wait.until(lambda d: d.find_elements_by_tag_name('a'))
         
@@ -41,10 +44,7 @@ class BlinkParser():
         
         self.driver.quit()
         
-    def load_chromedriver(self, path):
-        chrome_options = Options()
-        chrome_options.page_load_strategy = 'eager'
-        return webdriver.Chrome(path, options=chrome_options)
+
 
     def find_hrefs(self, list_a_tags, url_starts_with, url_does_not_include):
         list_urls = []
@@ -118,6 +118,25 @@ class BlinkParser():
     def get_urls(self):
         return [branch['url'] for _,branch in enumerate(self.branch_info)]
     
+    @staticmethod
+    def status_to_code(status):    
+        for status_code, status_text_list in BlinkParser.branch_status_dict.items():
+            if status in status_text_list:
+                return status_code
+        return None
+    
+    def get_status_code(self, url):
+        self.driver.get(url)
+        wait = WebDriverWait(self.driver, 3)
+        
+        try:
+            status = wait.until(lambda d: d.find_element_by_class_name('Hours-statusText')).text 
+        except:
+            # for branches that have no current status (usually branches that have not been opened yet)
+            status = wait.until(lambda d: d.find_element_by_class_name('Core-openingDate')).text
+    
+        return BlinkParser.status_to_code(status)
+        
     def parse_capacity(self):
         # load new driver in case connection refused from too many requests from initial parse
         self.driver = self.load_chromedriver(BlinkParser.CHROME_PATH)
@@ -127,25 +146,23 @@ class BlinkParser():
         #urls = self.get_urls()
         
         for url in urls:
-            self.driver.get(url)
-            wait = WebDriverWait(self.driver, 10)
+            status_code = self.get_status_code(url)
+            title = self.driver.find_element_by_class_name('LocationName-geo').text
+            #current_time = time.localtime(time.time()) # TODO: check how to store datetime in database
             
-            try:
-                status = wait.until(lambda d: d.find_element_by_class_name('Core-hoursToday')).text
-            except:
-                status = None
+            if not status_code:
+                capacity = self.driver.find_element_by_class_name('Core-capacityStatus').text
+            else:
+                capacity = None
                 
-        
-            if status and status.startswith('Closed'):
-                title = wait.until(lambda d: d.find_element_by_class_name('LocationName-geo')).text
-                capacity = wait.until(lambda d: d.find_element_by_class_name('Core-capacityStatus')).text
-                current_time = time.localtime(time.time()) # TODO: check how to store datetime in database
-                print(title, capacity, current_time)
+            if capacity:
+                print(title, status_code, capacity)
                 
+        self.driver.quit()
             
 if __name__ == '__main__':
     parser = BlinkParser()
-    parser.parse()
+    #parser.parse()
     parser.parse_capacity()
     
     
