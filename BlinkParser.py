@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support import expected_conditions as EC
+from datetime import datetime
 import time
 
 class BlinkParser():
@@ -18,7 +19,6 @@ class BlinkParser():
         self.driver = None
         self.branch_directory_urls = []
         self.branch_info = []
-        self.driver = self.load_chromedriver(BlinkParser.CHROME_PATH)
         
     def load_chromedriver(self, path):
         chrome_options = Options()
@@ -26,11 +26,13 @@ class BlinkParser():
         return webdriver.Chrome(path, options=chrome_options)
     
     def parse(self):
+        self.driver = self.load_chromedriver(BlinkParser.CHROME_PATH)
         self.driver.get(BlinkParser.DIRECTORY_URL)
         wait = WebDriverWait(self.driver, 10)
         
-        # not including virginia beach since VA does not have standard directory like all other states
         branch_links = wait.until(lambda d: d.find_elements_by_tag_name('a'))
+        
+        # not including virginia beach since VA does not have standard directory like all other states
         self.branch_directory_urls = self.find_hrefs(
             list_a_tags=branch_links,
             url_starts_with='https://locations.blinkfitness.com/',
@@ -41,9 +43,9 @@ class BlinkParser():
             time.sleep(1)
             
         self.parse_branch_info()
+        
         self.driver.quit()
         
-
 
     def find_hrefs(self, list_a_tags, url_starts_with, url_does_not_include):
         list_urls = []
@@ -87,7 +89,7 @@ class BlinkParser():
             if status in status_text_list:
                 return status_code
         return None
-    
+     
     def get_status_code(self, url):
         self.driver.get(url)
         wait = WebDriverWait(self.driver, 3)
@@ -103,9 +105,8 @@ class BlinkParser():
     def parse_capacity(self):
         # load new driver in case connection refused from too many requests from initial parse
         self.driver = self.load_chromedriver(BlinkParser.CHROME_PATH)
-         
+        
         urls = self.get_urls()
-        urls.remove('https://locations.blinkfitness.com/il/chicago/7509-west-cermak-road')
         capacities = []
         
         for url in urls:
@@ -120,18 +121,10 @@ class BlinkParser():
             
             capacities.append({
                 'title': self.driver.find_element_by_class_name('LocationName-geo').text,
-                'current_time': time.localtime(time.time()),
+                'timestamp': datetime.now(),
                 'status_code': status_code,
                 'capacity': capacity 
             })
             
         self.driver.quit()
         return capacities
-            
-if __name__ == '__main__':
-    parser = BlinkParser()
-    parser.parse()
-    caps = parser.parse_capacity()
-    
-
-    

@@ -20,7 +20,7 @@ class Branch(db.Model):
     address = db.relationship('Address', backref='branch', lazy=True, uselist=False)
     
     def __repr__(self):
-        return f"{self.title.title()}"
+        return f"Branch: {self.title.title()}"
     
 class Address(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -30,10 +30,11 @@ class Address(db.Model):
     street = db.Column(db.String(100), unique=True, nullable=False)
     
     def __repr__(self):
-        return f"{self.street}, {self.city}, {self.state}"
+        return f"Address: {self.street}, {self.city}, {self.state}"
     
 class Capacity(db.Model):
     id = db.Column(db.Integer,primary_key=True)
     branch_id = db.Column(db.Integer, db.ForeignKey('branch.id'), nullable=False)
     capacity = db.Column(db.String(100))
     status_code = db.Column(db.Integer)
+    timestamp = db.Column(db.DateTime)

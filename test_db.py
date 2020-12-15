@@ -1,16 +1,22 @@
 from app import db, Branch, Address, Capacity
 from BlinkParser import BlinkParser
-
   
-        
+# clear tables if starting from scratch 
 def refresh_tables():
     db.drop_all()
     db.create_all()
+    
+# adds and commits python objects mapped using ORM to SQLAlchemy database
+def add_and_commit_to_db(db_object):
+    db.session.add(db_object)
+    db.session.commit()
 
+# store branch info dictionaries into db 
+# parser.branch_info should have been populated prior using parser.parse() 
 def main(parser):
-    refresh_tables()
     
     for branch in parser.branch_info:
+        # Address data stored using separate db model (tied to Branch) for abstraction
         branch_address = Address(
             state = branch['state'],
             city = branch['city'],
@@ -24,41 +30,26 @@ def main(parser):
             url = branch['url']
         )
         
-        db.session.add(new_branch)
-        db.session.commit()
+        add_and_commit_to_db(new_branch)
         
-    return
-
+# scrape capacity data from individual branch pages and store into database
 def capacity(parser):
     capacities = parser.parse_capacity()
     
     for cap in capacities:   
+        # get branch ID from matching branch titles in Branch table and capacity data
         blink_branch_id = Branch.query.filter(Branch.title == cap['title']).first().id
         
-        # raise error if no valid branch 
+        # raise error if no valid branch in Branch table
         if not blink_branch_id:
-            print(cap, 'does not exist in database')
             raise NameError('No valid blink branch id for capacity reading')
         
-        print(blink_branch_id, cap['status_code'], cap['capacity'])
-        
+        # store capacity data as SQLAlchemy object
         new_capacity = Capacity(
             branch_id = blink_branch_id,
             status_code = cap['status_code'],
-            capacity = cap['capacity']
+            capacity = cap['capacity'],
+            timestamp = cap['timestamp']
         )
         
-        db.session.add(new_capacity)
-        db.session.commit()
-    
-    return    
-
-if __name__ == '__main__':
-    parser = BlinkParser()
-    parser.parse()
-    
-    try:
-        main(parser)
-        capacity(parser)
-    except:
-        print('*********************** error parsing')
+        add_and_commit_to_db(new_capacity)
