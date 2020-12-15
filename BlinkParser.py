@@ -29,7 +29,7 @@ class BlinkParser():
         self.driver = self.load_chromedriver(BlinkParser.CHROME_PATH)
         self.driver.get(BlinkParser.DIRECTORY_URL)
         wait = WebDriverWait(self.driver, 10)
-        
+    
         branch_links = wait.until(lambda d: d.find_elements_by_tag_name('a'))
         
         # not including virginia beach since VA does not have standard directory like all other states
@@ -45,7 +45,7 @@ class BlinkParser():
         self.parse_branch_info()
         
         self.driver.quit()
-        
+  
 
     def find_hrefs(self, list_a_tags, url_starts_with, url_does_not_include):
         list_urls = []
