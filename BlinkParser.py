@@ -1,29 +1,35 @@
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support import expected_conditions as EC
+from datetime import datetime
 import time
 
 class BlinkParser():
     CHROME_PATH = "/Users/ik/bin/chromedriver"
-
+    DIRECTORY_URL = 'https://locations.blinkfitness.com/index.html'
+    
     branch_status_dict = {
-        0: ['Temporarily Closed', 'Closed'],
-        1: ['Coming Soon'], 
-        2: ['Open Now'],
+        0: ['Open Now - Closes at'],
+        1: ['Opening Soon'], 
+        2: ['Temporarily Closed', 'Closed'],
         3: ['Closed - Opens at']}
 
     def __init__(self):
         self.driver = None
         self.branch_directory_urls = []
-        self.location_info = []
+        self.branch_info = []
         
+    def load_chromedriver(self, path):
+        chrome_options = Options()
+        chrome_options.page_load_strategy = 'eager'
+        return webdriver.Chrome(path, options=chrome_options)
+    
     def parse(self):
-        self.load_chromedriver(BlinkParser.CHROME_PATH)
-
-        blink_directory_url = 'https://locations.blinkfitness.com/index.html'
-
-        self.driver.get(blink_directory_url)
+        self.driver = self.load_chromedriver(BlinkParser.CHROME_PATH)
+        self.driver.get(BlinkParser.DIRECTORY_URL)
         wait = WebDriverWait(self.driver, 10)
+    
         branch_links = wait.until(lambda d: d.find_elements_by_tag_name('a'))
         
         # not including virginia beach since VA does not have standard directory like all other states
@@ -35,14 +41,11 @@ class BlinkParser():
         # if urls not parsed yet, then sleep and retry after 1 second
         while len(self.branch_directory_urls) == 0:
             time.sleep(1)
-        self.parse_branch_info() 
+            
+        self.parse_branch_info()
         
         self.driver.quit()
-        
-    def load_chromedriver(self, path):
-        chrome_options = Options()
-        chrome_options.page_load_strategy = 'eager'
-        self.driver = webdriver.Chrome(path, options=chrome_options)
+  
 
     def find_hrefs(self, list_a_tags, url_starts_with, url_does_not_include):
         list_urls = []
@@ -53,22 +56,9 @@ class BlinkParser():
             if url_string.startswith(url_starts_with):
                 if not any(x in url_string for x in url_does_not_include):
                     list_urls.append(url_string)
-        return list_urls
+        return list_urls        
     
     def parse_branch_info(self):
-        def parse_status(branch_element):
-            # text is located in different div depending on branch status
-            try:
-                status = branch.find_element_by_class_name('Hours-statusText').text.strip()
-            except:
-                status = branch.find_element_by_class_name('Teaser-text').text
-            
-            # return status as integer value for efficient storage and comparison
-            for k,v in BlinkParser.branch_status_dict.items():
-                if status in v:
-                    return k
-            return None
-        
         for url in self.branch_directory_urls:
             self.driver.get(url)
     
@@ -80,28 +70,61 @@ class BlinkParser():
                 branches = city.find_elements_by_class_name('Directory-listTeaser')
                 
                 for branch in branches:
-                    # replace assignments with database update code
-                    temp_branch = {}
-                    temp_branch['branch_state'] = url[-2:]
-                    temp_branch['branch_city'] = city.find_element_by_class_name('Directory-cityName').text
-                    temp_branch['branch_status'] = parse_status(branch)
-                    temp_branch['branch_url'] = branch.find_element_by_class_name('Teaser-titleLink').get_attribute('href')
-                    temp_branch['branch_title'] = branch.find_element_by_class_name('Teaser-title').text
-                    temp_branch['branch_address'] = branch.find_element_by_class_name('Teaser-address').text
-                    temp_branch['branch_phone'] = branch.find_element_by_class_name('Teaser-phone').text
+                    temp_branch = {
+                        'state': url[-2:].upper(),
+                        'city': city.find_element_by_class_name('Directory-cityName').text,
+                        'street': branch.find_element_by_class_name('Teaser-address').text,
+                        'title': branch.find_element_by_class_name('Teaser-title').text,
+                        'phone': branch.find_element_by_class_name('Teaser-phone').text,
+                        'url': branch.find_element_by_class_name('Teaser-titleLink').get_attribute('href')}
                     
-                    self.location_info.append(temp_branch)
+                    self.branch_info.append(temp_branch)
+
+    def get_urls(self):
+        return [branch['url'] for _,branch in enumerate(self.branch_info)]
+    
+    @staticmethod
+    def status_to_code(status):    
+        for status_code, status_text_list in BlinkParser.branch_status_dict.items():
+            if status in status_text_list:
+                return status_code
+        return None
+     
+    def get_status_code(self, url):
+        self.driver.get(url)
+        wait = WebDriverWait(self.driver, 3)
         
-        # TODO: develop function that takes branch URL and returns capacity 
-        def parse_capacity(self, branch_url):
-            # TODO: develop function that checks status
-            pass
+        try:
+            status = wait.until(lambda d: d.find_element_by_class_name('Hours-statusText')).text 
+        except:
+            # for branches that have no current status (usually branches that have not been opened yet)
+            status = wait.until(lambda d: d.find_element_by_class_name('Core-openingDate')).text
+    
+        return BlinkParser.status_to_code(status)
         
-if __name__ == '__main__':
-    parser = BlinkParser()
-    parser.parse()
-    
-    for item in parser.location_info:
-        print(item)
-    
-    
+    def parse_capacity(self):
+        # load new driver in case connection refused from too many requests from initial parse
+        self.driver = self.load_chromedriver(BlinkParser.CHROME_PATH)
+        
+        urls = self.get_urls()
+        capacities = []
+        
+        for url in urls:
+            status_code = self.get_status_code(url)
+            
+            # status code corresponds to dictionary at beginning of class (0 = branch is open)
+            # find_elements used with walrus operator to avoid error for certain webpages where Core-capacityStatus shows up for unopened branches (it shouldn't)
+            if not status_code and len(cap_element := self.driver.find_elements_by_class_name('Core-capacityStatus')) > 0:
+                capacity = cap_element[0].text
+            else:
+                capacity = None
+            
+            capacities.append({
+                'title': self.driver.find_element_by_class_name('LocationName-geo').text,
+                'timestamp': datetime.now(),
+                'status_code': status_code,
+                'capacity': capacity 
+            })
+            
+        self.driver.quit()
+        return capacities
