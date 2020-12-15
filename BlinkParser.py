@@ -28,9 +28,9 @@ class BlinkParser():
     def parse(self):
         self.driver.get(BlinkParser.DIRECTORY_URL)
         wait = WebDriverWait(self.driver, 10)
-        branch_links = wait.until(lambda d: d.find_elements_by_tag_name('a'))
         
         # not including virginia beach since VA does not have standard directory like all other states
+        branch_links = wait.until(lambda d: d.find_elements_by_tag_name('a'))
         self.branch_directory_urls = self.find_hrefs(
             list_a_tags=branch_links,
             url_starts_with='https://locations.blinkfitness.com/',
@@ -41,7 +41,6 @@ class BlinkParser():
             time.sleep(1)
             
         self.parse_branch_info()
-        
         self.driver.quit()
         
 
@@ -106,11 +105,18 @@ class BlinkParser():
         self.driver = self.load_chromedriver(BlinkParser.CHROME_PATH)
          
         urls = self.get_urls()
+        urls.remove('https://locations.blinkfitness.com/il/chicago/7509-west-cermak-road')
         capacities = []
         
         for url in urls:
             status_code = self.get_status_code(url)
-            capacity = None if status_code else self.driver.find_element_by_class_name('Core-capacityStatus').text
+            
+            # status code corresponds to dictionary at beginning of class (0 = branch is open)
+            # find_elements used with walrus operator to avoid error for certain webpages where Core-capacityStatus shows up for unopened branches (it shouldn't)
+            if not status_code and len(cap_element := self.driver.find_elements_by_class_name('Core-capacityStatus')) > 0:
+                capacity = cap_element[0].text
+            else:
+                capacity = None
             
             capacities.append({
                 'title': self.driver.find_element_by_class_name('LocationName-geo').text,
