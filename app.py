@@ -38,3 +38,42 @@ class Capacity(db.Model):
     capacity = db.Column(db.String(100))
     status_code = db.Column(db.Integer)
     timestamp = db.Column(db.DateTime)
+
+@app.route('/')
+def home():
+    # query and format the data to be displayed by jinja template
+    branches = db.session.query(Branch, Address).join(Address).all()
+    
+    data = []
+    for branch in branches:
+        data.append({
+            'title': branch.Branch.title,
+            'phone': branch.Branch.phone,
+            'state': branch.Address.state,
+            'address': branch.Address.street,
+            'url': branch.Branch.url
+        })
+        
+    # render base.html (parent template) with branches data loaded into bootstrap table
+    return render_template("base.html", branches=data)
+
+@app.route('/view_branches')
+def view_branches():
+    # TODO: grab the data as a object that can be parsed by jinja
+    branches = db.session.query(Branch, Address).join(Address).all()
+    
+    data = []
+    for branch in branches:
+        data.append({
+            'title': branch.Branch.title,
+            'phone': branch.Branch.phone,
+            'state': branch.Address.state,
+            'address': branch.Address.street,
+            'url': branch.Branch.url
+        })
+        
+    # TODO: pass object into response
+    return render_template("base.html", branches=data)
+
+if __name__ == "__main__":
+    app.run(debug=True)
