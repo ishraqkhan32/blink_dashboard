@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<table class="table table-hover table-sm table-bordered">
+    <thead class="thead-dark">
+        <tr>
+            <th scope="col">Branch Name</th>
+            {% for time in time_headers %}
+                <th style="font-size: 12px">{{time}}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    
+    <tbody>
+    {% for title, readings in data.items() %}
+        <tr>
+            <td>{{title}}</td>
+            {% for timestamp, capacity in readings %}
+                {% if capacity == 25 %}
+                    <td style="background-color: rgb(154, 228, 154)">{{capacity}}</td>
+                {% elif capacity == 50 %}
+                    <td style="background-color: rgb(247, 247, 133)">{{capacity}}</td>
+                {% elif capacity == 75 %}
+                    <td style="background-color: orange">{{capacity}}</td>
+                {% elif capacity == 100 %}
+                    <td style="background-color: rgb(175, 0, 0)">{{capacity}}</td>
+                {% endif %}
+            {% endfor %}
+        </tr>
+    {% endfor %}
+
+    </tbody>
+</table>
+{% endblock %}

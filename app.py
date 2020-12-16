@@ -38,3 +38,86 @@ class Capacity(db.Model):
     capacity = db.Column(db.String(100))
     status_code = db.Column(db.Integer)
     timestamp = db.Column(db.DateTime)
+
+def get_branch_data():
+     # query and format the data to be displayed by jinja template
+    branches = db.session.query(Branch, Address).join(Address).all()
+    
+    data = []
+    for branch in branches:
+        data.append({
+            'title': branch.Branch.title,
+            'phone': branch.Branch.phone,
+            'state': branch.Address.state,
+            'region': branch.Address.city,
+            'address': branch.Address.street,
+            'url': branch.Branch.url
+        })
+        
+    return data
+
+# converts capacity string (parsed from branch homepage) to integer or NULL value
+def capacity_to_percent(capacity_str):
+    status_to_value = {
+        "LESS THAN 25% FULL": 25,
+        "ABOUT 50% FULL": 50,
+        "ABOUT 75% FULL": 75,
+        "AT CAPACITY": 100,
+        "": None,
+        "CAPACITY DATA UNAVAILABLE": None
+    }
+    
+    return status_to_value[capacity_str]
+
+def get_capacity_data():
+    caps = db.session.query(Capacity, Branch).join(Branch).filter(Capacity.capacity != None).all()
+    readings = {}
+
+    # map list of queried capacities into dictonary of the form:
+    # {
+    #   branch_title_1: [(timestamp_1, capacity_1), ... , (timestamp_n, capacity_n)]   
+    #   ....
+    #   branch_title_n: [(timestamp_1, capacity_1), ... , (timestamp_n, capacity_n)]  
+    # }
+    for cap in caps:
+        branch = f"{cap.Branch.address.state} - {cap.Branch.title}"
+        timestamp = cap.Capacity.timestamp
+        capacity = capacity_to_percent(cap.Capacity.capacity)
+
+        # append capacity to appropriate list if branch already exists 
+        if branch in readings.keys():
+            readings[branch].append((timestamp, capacity))
+        # else create new entry in dictionary
+        else:
+            readings[branch] = [(timestamp, capacity)]
+            
+    return readings
+
+@app.route('/')
+def home():
+    # render base.html (parent template) with branches data loaded into bootstrap table
+    return render_template("home.html", branches=get_branch_data())
+
+@app.route('/view_branches')
+def view_branches():
+    return render_template("table.html", branches=get_branch_data())
+
+@app.route('/view_capacities')
+def view_capacities():
+    data = get_capacity_data()
+    time_headers = ["3:30 PM", "3:45 PM", "4:00 PM", "4:15 PM", "4:30 PM", "4:45 PM", "5:00 PM", "5:15 PM", "5:30 PM", "5:45 PM"]
+    return render_template("capacity.html", data=data, time_headers=time_headers)
+
+@app.route('/api_branches', methods=['GET'])
+def get_branches():
+    branch_data = get_branch_data()
+    return jsonify(branch_data)
+
+@app.route('/api_capacities', methods=['GET'])
+def get_capacities():
+    capacity_data = get_capacity_data()
+    print(capacity_data)
+    return jsonify(capacity_data)
+
+if __name__ == "__main__":
+    app.run(debug=True)

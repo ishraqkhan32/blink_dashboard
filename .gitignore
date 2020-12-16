@@ -1,5 +1,5 @@
 # Databases
-*.db
+# *.db
 
 # Pycache
 __pycache__/
