@@ -1,12 +1,14 @@
+{% extends "base.html" %}
 
 {% block table %} 
 <table class="table table-hover table-sm table-bordered">
     <thead class="thead-dark">
         <tr>
             <th scope="col">State</th>
-            <th scope="col">Branch</th>
-            <th scope="col">Phone Number</th>
+            <th scope="col">Region</th>
+            <th scope="col">Branch Name</th>
             <th scope="col">Address</th>
+            <th scope="col">Phone Number</th>
         </tr>
     </thead>
     
@@ -14,9 +16,10 @@
     {% for branch in branches %}
         <tr>
             <td>{{branch.state}}</td>
+            <td>{{branch.region}}</td>
             <td><a href={{branch.url}}>{{branch.title}}</a></td>
-            <td>{{branch.phone}}</td>
             <td>{{branch.address}}</td>
+            <td>{{branch.phone}}</td>
         </tr>
     {% endfor %}
 

@@ -6,7 +6,7 @@
 
         <!-- Bootstrap CSS & Regular CSS-->
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-        <link rel="stylesheet" type="text/css" href='static/styles.css'> 
+        <link rel="stylesheet" type="text/css" href='../static/styles.css'> 
         
         <!-- Bootstrap JS -->
         <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
@@ -42,7 +42,7 @@
                             API
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <a class="dropdown-item" href="{{ '/api_tables'}}">Branches</a>
+                                <a class="dropdown-item" href="{{ '/api_branches'}}">Branches</a>
                                 <a class="dropdown-item" href="{{ '/api_capacities'}}">Capacities</a>
                             </div>
                         </li>
@@ -53,7 +53,6 @@
             </nav>
             
             <div class="col-10 offset-md-1"><br>
-                {% include "table.html" %}
                 {% block table %}{% endblock %}
             </div>
         </div>
