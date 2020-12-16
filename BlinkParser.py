@@ -25,18 +25,19 @@ class BlinkParser():
         chrome_options.page_load_strategy = 'eager'
         return webdriver.Chrome(path, options=chrome_options)
     
+    # crawls gym directory and parses metadata individual branch elements 
     def parse(self):
         self.driver = self.load_chromedriver(BlinkParser.CHROME_PATH)
         self.driver.get(BlinkParser.DIRECTORY_URL)
         wait = WebDriverWait(self.driver, 10)
     
+        # extract links only to each state's homepage and store as class attribute
+        # VA beach has non-standard homepage; ignoring for now
         branch_links = wait.until(lambda d: d.find_elements_by_tag_name('a'))
-        
-        # not including virginia beach since VA does not have standard directory like all other states
-        self.branch_directory_urls = self.find_hrefs(
+        self.branch_directory_urls = self.find_hrefs_with_conditions(
             list_a_tags=branch_links,
             url_starts_with='https://locations.blinkfitness.com/',
-            url_does_not_include=['index','search','virginia-beach'])
+            url_does_not_include=['index','search','virginia-beach']) 
         
         # if urls not parsed yet, then sleep and retry after 1 second
         while len(self.branch_directory_urls) == 0:
@@ -46,8 +47,8 @@ class BlinkParser():
         
         self.driver.quit()
   
-
-    def find_hrefs(self, list_a_tags, url_starts_with, url_does_not_include):
+    # takes list of web elements ('a' tags) and returns a list of URLs (str) that follows conditions specified by parameters
+    def find_hrefs_with_conditions(self, list_a_tags, url_starts_with, url_does_not_include):
         list_urls = []
 
         for link in list_a_tags:
@@ -58,6 +59,8 @@ class BlinkParser():
                     list_urls.append(url_string)
         return list_urls        
     
+    # loads single gym branch homepage and extracts relevant gym metadata (state, city, street address, title, phone, url)
+    # and appends to class attribute containing list of metadata for all branches
     def parse_branch_info(self):
         for url in self.branch_directory_urls:
             self.driver.get(url)
@@ -80,16 +83,19 @@ class BlinkParser():
                     
                     self.branch_info.append(temp_branch)
 
+    # returns list of gym homepage urls from list of dictionaries containing all gym metadata
     def get_urls(self):
         return [branch['url'] for _,branch in enumerate(self.branch_info)]
     
     @staticmethod
-    def status_to_code(status):    
+    def encode_gym_status(status):    
         for status_code, status_text_list in BlinkParser.branch_status_dict.items():
             if status in status_text_list:
                 return status_code
         return None
      
+    # loads gym homepage and parses current status as encoded value (see branch_status_dict for mapping)
+    #
     def get_status_code(self, url):
         self.driver.get(url)
         wait = WebDriverWait(self.driver, 3)
@@ -100,10 +106,12 @@ class BlinkParser():
             # for branches that have no current status (usually branches that have not been opened yet)
             status = wait.until(lambda d: d.find_element_by_class_name('Core-openingDate')).text
     
-        return BlinkParser.status_to_code(status)
+        return BlinkParser.encode_gym_status(status)
         
+    # crawls through each gym homepage and parses the current capacity (if available) 
+    # returns as list of dictionaries of capacity readings (branch title, timestamp, status_code, capacity)
     def parse_capacity(self):
-        # load new driver in case connection refused from too many requests from initial parse
+        # load new driver in case connection refused from too many requests from initial metadata parse
         self.driver = self.load_chromedriver(BlinkParser.CHROME_PATH)
         
         urls = self.get_urls()
@@ -112,7 +120,7 @@ class BlinkParser():
         for url in urls:
             status_code = self.get_status_code(url)
             
-            # status code corresponds to dictionary at beginning of class (0 = branch is open)
+            # TODO: parsing status_code may be unnecessary; initial thought process was to take advantage of lazy evaluation (parse only open branches)
             # find_elements used with walrus operator to avoid error for certain webpages where Core-capacityStatus shows up for unopened branches (it shouldn't)
             if not status_code and len(cap_element := self.driver.find_elements_by_class_name('Core-capacityStatus')) > 0:
                 capacity = cap_element[0].text

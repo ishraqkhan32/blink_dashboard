@@ -6,7 +6,7 @@ app = Flask(__name__)
 app.config['ENV'] = 'development'
 #app.config['SECRET_KEY'] = ''
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blink.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db/blink.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # database setup
@@ -95,29 +95,27 @@ def get_capacity_data():
 
 @app.route('/')
 def home():
-    # render base.html (parent template) with branches data loaded into bootstrap table
     return render_template("home.html", branches=get_branch_data())
 
+# renders page containing table of all gyms + metadata (address, phone, url)
 @app.route('/view_branches')
 def view_branches():
     return render_template("table.html", branches=get_branch_data())
 
+# renders table showing parsed capacities 
 @app.route('/view_capacities')
 def view_capacities():
-    data = get_capacity_data()
+    # time is currently hardcoded for sample presentation (will replace with timestamps once parsing is automated)
     time_headers = ["3:30 PM", "3:45 PM", "4:00 PM", "4:15 PM", "4:30 PM", "4:45 PM", "5:00 PM", "5:15 PM", "5:30 PM", "5:45 PM"]
-    return render_template("capacity.html", data=data, time_headers=time_headers)
+    return render_template("capacity.html", data=get_capacity_data(), time_headers=time_headers)
 
 @app.route('/api_branches', methods=['GET'])
 def get_branches():
-    branch_data = get_branch_data()
-    return jsonify(branch_data)
+    return jsonify(get_branch_data())
 
 @app.route('/api_capacities', methods=['GET'])
 def get_capacities():
-    capacity_data = get_capacity_data()
-    print(capacity_data)
-    return jsonify(capacity_data)
+    return jsonify(get_capacity_data())
 
 if __name__ == "__main__":
     app.run(debug=True)
