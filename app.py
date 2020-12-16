@@ -96,7 +96,7 @@ def get_capacity_data():
 @app.route('/')
 def home():
     # render base.html (parent template) with branches data loaded into bootstrap table
-    return render_template("base.html", branches=get_branch_data())
+    return render_template("home.html", branches=get_branch_data())
 
 @app.route('/view_branches')
 def view_branches():
@@ -104,7 +104,6 @@ def view_branches():
 
 @app.route('/view_capacities')
 def view_capacities():
-    num_readings = 10
     data = get_capacity_data()
     time_headers = ["3:30 PM", "3:45 PM", "4:00 PM", "4:15 PM", "4:30 PM", "4:45 PM", "5:00 PM", "5:15 PM", "5:30 PM", "5:45 PM"]
     return render_template("capacity.html", data=data, time_headers=time_headers)
