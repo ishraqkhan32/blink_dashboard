@@ -1,6 +1,5 @@
 from app import db, Branch, Address, Capacity
-from BlinkParser import BlinkParser
-  
+
 # clear tables if starting from scratch 
 def refresh_tables():
     db.drop_all()

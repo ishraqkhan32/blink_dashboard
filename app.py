@@ -3,10 +3,9 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-app.config['ENV'] = 'development'
 #app.config['SECRET_KEY'] = ''
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db/blink.db'
+app.config['ENV'] = 'development'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://admin:password@blink-1.cgk5wllpkj9i.us-east-1.rds.amazonaws.com:3306/blink'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # database setup
