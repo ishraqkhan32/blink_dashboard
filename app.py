@@ -1,5 +1,6 @@
 from flask import Flask, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy 
+from models import Branch, Address, Capacity
 
 app = Flask(__name__)
 app.config.from_envvar('BLINK_CONFIG_PATH')
@@ -7,35 +8,18 @@ app.config.from_envvar('BLINK_CONFIG_PATH')
 # database setup
 db = SQLAlchemy(app)
 
-class Branch(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(30), unique=True, nullable=False)
-    phone = db.Column(db.String(12), unique=True, nullable=False)
-    url = db.Column(db.String(100), nullable=False)
-    address = db.relationship('Address', backref='branch', lazy=True, uselist=False)
+# clear tables if starting from scratch 
+def refresh_tables():
+    db.drop_all()
+    db.create_all()
     
-    def __repr__(self):
-        return f"Branch: {self.title.title()}"
+# adds and commits python objects mapped using ORM to SQLAlchemy database
+def add_and_commit_to_db(db_object):
+    db.session.add(db_object)
+    db.session.commit()
     
-class Address(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    branch_id = db.Column(db.Integer, db.ForeignKey('branch.id'), nullable=False)
-    state = db.Column(db.String(2), nullable=False) # TODO: make this limited to state abbreviations
-    city = db.Column(db.String(30), nullable=False)
-    street = db.Column(db.String(100), unique=True, nullable=False)
-    
-    def __repr__(self):
-        return f"Address: {self.street}, {self.city}, {self.state}"
-    
-class Capacity(db.Model):
-    id = db.Column(db.Integer,primary_key=True)
-    branch_id = db.Column(db.Integer, db.ForeignKey('branch.id'), nullable=False)
-    capacity = db.Column(db.String(100))
-    status_code = db.Column(db.Integer)
-    timestamp = db.Column(db.DateTime)
-
+# query and format the branch data to be displayed by table in jinja template 
 def get_branch_data():
-     # query and format the data to be displayed by jinja template
     branches = db.session.query(Branch, Address).join(Address).all()
     
     data = []
@@ -64,6 +48,7 @@ def capacity_to_percent(capacity_str):
     
     return status_to_value[capacity_str]
 
+# queries capacity data and returns as dictionary
 def get_capacity_data():
     caps = db.session.query(Capacity, Branch).join(Branch).filter(Capacity.capacity != None).all()
     readings = {}
@@ -88,29 +73,47 @@ def get_capacity_data():
             
     return readings
 
-@app.route('/')
-def home():
-    return render_template("home.html", branches=get_branch_data())
-
-# renders page containing table of all gyms + metadata (address, phone, url)
-@app.route('/view_branches')
-def view_branches():
-    return render_template("table.html", branches=get_branch_data())
-
-# renders table showing parsed capacities 
-@app.route('/view_capacities')
-def view_capacities():
-    # time is currently hardcoded for sample presentation (will replace with timestamps once parsing is automated)
-    time_headers = ["3:30 PM", "3:45 PM", "4:00 PM", "4:15 PM", "4:30 PM", "4:45 PM", "5:00 PM", "5:15 PM", "5:30 PM", "5:45 PM"]
-    return render_template("capacity.html", data=get_capacity_data(), time_headers=time_headers)
-
-@app.route('/api_branches', methods=['GET'])
-def get_branches():
-    return jsonify(get_branch_data())
-
-@app.route('/api_capacities', methods=['GET'])
-def get_capacities():
-    return jsonify(get_capacity_data())
-
+# store branch info dictionaries into db 
+# parser.branch_info should have been populated prior using parser.parse() 
+def main(parser):
+    for branch in parser.branch_info:
+        # Address data stored using separate db model (tied to Branch) for abstraction
+        branch_address = Address(
+            state = branch['state'],
+            city = branch['city'],
+            street = branch['street']
+        )
+        
+        new_branch = Branch(
+            title = branch['title'],
+            address = branch_address,
+            phone = branch['phone'],
+            url = branch['url']
+        )
+        
+        add_and_commit_to_db(new_branch)
+        
+# scrape capacity data from individual branch pages and store into database
+def capacity(parser):
+    capacities = parser.parse_capacity()
+    
+    for cap in capacities:   
+        # get branch ID from matching branch titles in Branch table and capacity data
+        blink_branch_id = Branch.query.filter(Branch.title == cap['title']).first().id
+        
+        # raise error if no valid branch in Branch table
+        if not blink_branch_id:
+            raise NameError('No valid blink branch id for capacity reading')
+        
+        # store capacity data as SQLAlchemy object
+        new_capacity = Capacity(
+            branch_id = blink_branch_id,
+            status_code = cap['status_code'],
+            capacity = cap['capacity'],
+            timestamp = cap['timestamp']
+        )
+        
+        add_and_commit_to_db(new_capacity)
+        
 if __name__ == "__main__":
     app.run(debug=True)
