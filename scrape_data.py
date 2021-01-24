@@ -21,6 +21,6 @@ if __name__ == "__main__":
         duration = sec_end - sec_start
         print(f'Database updated at {time_end} - {round(duration)}s')
         
-        time.sleep(900)
+        time.sleep(800)
         
     

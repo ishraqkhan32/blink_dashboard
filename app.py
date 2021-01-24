@@ -2,11 +2,7 @@ from flask import Flask, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy 
 
 app = Flask(__name__)
-
-#app.config['SECRET_KEY'] = ''
-app.config['ENV'] = 'development'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://admin:password@blink-1.cgk5wllpkj9i.us-east-1.rds.amazonaws.com:3306/blink'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config.from_envvar('BLINK_CONFIG_PATH')
 
 # database setup
 db = SQLAlchemy(app)
