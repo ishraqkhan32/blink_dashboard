@@ -5,10 +5,20 @@ def create_app(config_path='BLINK_CONFIG_PATH'):
     app = Flask(__name__)
     app.config.from_envvar(config_path)
     register_extensions(app)
+    #register_commands(app)
+    
     return app
     
 def register_extensions(app):
     db.init_app(app)
+
+# TODO    
+def register_commands(app):
+    """Register Click commands"""
+    
+
+app = create_app()
+from models import Branch, Address, Capacity 
  
 # clear db tables if starting from scratch 
 def refresh_db():
@@ -19,10 +29,6 @@ def refresh_db():
 def add_and_commit_to_db(db_object):
     db.session.add(db_object)
     db.session.commit()
-
-app = create_app()
-
-from models import Branch, Address, Capacity
 
 # scrape capacity data from individual branch pages and store into database
 def scrape_and_store_capacities(capacities):
@@ -124,3 +130,5 @@ def get_capacity_data():
                 
         return readings
 
+if __name__ == "__main__":
+    app.run(debug=True)

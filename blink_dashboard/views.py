@@ -3,6 +3,7 @@ from app import app, get_branch_data, get_capacity_data
 
 @app.route('/')
 def home():
+    print(get_branch_data)
     return render_template("home.html", branches=get_branch_data())
 
 # renders page containing table of all gyms + metadata (address, phone, url)
@@ -24,3 +25,7 @@ def get_branches():
 @app.route('/api_capacities', methods=['GET'])
 def get_capacities():
     return jsonify(get_capacity_data())
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

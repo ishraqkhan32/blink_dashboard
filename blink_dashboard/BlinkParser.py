@@ -5,11 +5,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
 import time
 
-from app import create_app, add_and_commit_to_db
-from models import Branch, Address, Capacity
-
 class BlinkParser():
-    CHROME_PATH = "/Users/ik/bin/chromedriver"
+    CHROME_PATH = "/Users/ik/bin/chromedriver" # TODO: change this to environment variable 
     DIRECTORY_URL = 'https://locations.blinkfitness.com/index.html'
     
     branch_status_dict = {
@@ -116,7 +113,7 @@ class BlinkParser():
         # load new driver in case connection refused from too many requests from initial metadata parse
         self.driver = self.load_chromedriver(BlinkParser.CHROME_PATH)
         
-        urls = self.get_urls()
+        urls = self.get_urls() # TODO: get URLS from database 
         capacities = []
         
         for url in urls:
